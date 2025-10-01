@@ -46,14 +46,18 @@ struct VUMPSState{S, O, E}
 end
 
 function find_groundstate(
-        mps::InfiniteMPS, operator, alg::VUMPS, envs = environments(mps, operator)
+        mps::InfiniteMPS, operator, 
+        alg::VUMPS, 
+        envs = environments(mps, operator),
+        log_measure=[]
     )
-    return dominant_eigsolve(operator, mps, alg, envs; which = :SR)
+    return dominant_eigsolve(operator, mps, alg, envs; which = :SR, log_measure=log_measure)
 end
 
 function dominant_eigsolve(
         operator, mps, alg::VUMPS, envs = environments(mps, operator);
-        which
+        which, 
+        log_measure=[]
     )
     log = IterLog("VUMPS")
     iter = 0
@@ -65,18 +69,26 @@ function dominant_eigsolve(
     it = IterativeSolver(alg, state)
 
     return LoggingExtras.withlevel(; alg.verbosity) do
-        @infov 2 loginit!(log, ϵ, sum(expectation_value(mps, operator, envs)))
+        other_data = Pair{String,Number}[k => f(mps) for (k,f) in log_measure]
+        @infov 2 loginit!(log, 
+                          ϵ, 
+                          sum(expectation_value(mps, operator, envs)),
+                          other_data)
 
         for (mps, envs, ϵ) in it
+            other_data = Pair{String,Number}[k => f(mps) for (k,f) in log_measure]
             if ϵ ≤ alg.tol
-                @infov 2 logfinish!(log, it.iter, ϵ, expectation_value(mps, operator, envs))
+                @infov 2 logfinish!(log, it.iter, ϵ, expectation_value(mps, operator, envs),
+                                    other_data)
                 return mps, envs, ϵ
             end
             if it.iter ≥ alg.maxiter
-                @warnv 1 logcancel!(log, it.iter, ϵ, expectation_value(mps, operator, envs))
+                @warnv 1 logcancel!(log, it.iter, ϵ, expectation_value(mps, operator, envs),
+                                    other_data)
                 return mps, envs, ϵ
             end
-            @infov 3 logiter!(log, it.iter, ϵ, expectation_value(mps, operator, envs))
+            @infov 3 logiter!(log, it.iter, ϵ, expectation_value(mps, operator, envs),
+                              other_data)
         end
 
         # this should never be reached
