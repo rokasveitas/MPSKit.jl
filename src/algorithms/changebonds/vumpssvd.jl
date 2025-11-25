@@ -51,6 +51,7 @@ end
 
 function changebonds_n(state::InfiniteMPS, H, alg::VUMPSSvdCut, envs = environments(state, H))
     meps = 0.0
+    @info "starting changebonds_n"
     for loc in 1:length(state)
         @plansor AC2[-1 -2; -3 -4] := state.AC[loc][-1 -2; 1] * state.AR[loc + 1][1 -4; -3]
 
@@ -78,6 +79,8 @@ function changebonds_n(state::InfiniteMPS, H, alg::VUMPSSvdCut, envs = environme
         copied[loc + 1] = AL2
         state = InfiniteMPS(copied; alg.alg_gauge.tol, alg.alg_gauge.maxiter)
         recalculate!(envs, state, H, state)
+
+        @info "changebonds finished site $loc/$(length(state))\tmeps = $meps\twalltime = $(now())bonds = $(left_virtualspace(state))"
     end
     return state, envs
 end

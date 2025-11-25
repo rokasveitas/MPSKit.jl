@@ -87,10 +87,12 @@ function changebonds(ψ::MultilineMPS, alg::SvdCut)
     return Multiline(map(x -> changebonds(x, alg), ψ.data))
 end
 function changebonds(ψ::InfiniteMPS, alg::SvdCut)
+    @info "starting changebonds on InfiniteMPS with SvdCut"
     copied = copy.(ψ.AL)
     ncr = ψ.C[1]
 
     for i in 1:length(ψ)
+        @info "starting site $i / $(length(ψ))"
         U, ncr, = tsvd(ψ.C[i]; trunc = alg.trscheme, alg = alg.alg_svd)
         copied[i] = copied[i] * U
         copied[i + 1] = _transpose_front(U' * _transpose_tail(copied[i + 1]))

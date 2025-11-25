@@ -14,7 +14,7 @@ mutable struct IterLog
     iter::Int
     error::Float64
     objective::Union{Nothing, Number}
-    other_data::Vector{Pair{String, Number}}
+    other_data::Vector
 
     t_init::Float64
     t_prev::Float64
@@ -36,7 +36,7 @@ warnapproxreal(x::Number) = isapproxreal(x) || @warn "Objective has imaginary pa
 function loginit!(
         log::IterLog, error::Float64, 
         objective::Union{Nothing, Number} = nothing, 
-        other_data::Vector{Pair{String, Number}} = []
+        other_data = []
     )
     log.iter = 0
     log.error = error
@@ -52,7 +52,7 @@ end
 function logiter!(
         log::IterLog, iter::Int, error::Float64, 
         objective::Union{Nothing, Number} = nothing,
-        other_data::Vector{Pair{String, Number}} = []
+        other_data = []
     )
     log.iter = iter
     log.error = error
@@ -69,7 +69,7 @@ end
 function logfinish!(
         log::IterLog, iter::Int, error::Float64, 
         objective::Union{Nothing, Number} = nothing,
-        other_data::Vector{Pair{String, Number}} = []
+        other_data = []
     )
     log.iter = iter
     log.error = error
@@ -86,7 +86,7 @@ end
 function logcancel!(
         log::IterLog, iter::Int, error::Float64, 
         objective::Union{Nothing, Number} = nothing,
-        other_data::Vector{Pair{String, Number}} = []
+        other_data = []
     )
     log.iter = iter
     log.error = error
@@ -152,11 +152,11 @@ function Base.show(io::IO, log::IterLog)
             return @printf io "%s %3d:\terr = %0.10e\ttime = %s" log.name log.iter log.error Δt_str
         elseif log.other_data == []
             obj_str = format_objective(log.objective)
-            return @printf io "%s %3d:\tobj = %s\terr = %0.10e\ttime = %s" log.name log.iter log.error Δt_str
+            return @printf io "%s %3d:\tobj = %s\terr = %0.10e\ttime = %s" log.name log.iter obj_str log.error Δt_str
         else
             obj_str = format_objective(log.objective)
             data_str = format_other_data(log.other_data)
-            return @printf io "%s %3d:\tobj = %s\terr = %0.10e\ttime = %s\t%s" log.name log.iter log.error Δt_str data_str
+            return @printf io "%s %3d:\tobj = %s\terr = %0.10e\ttime = %s\t%s" log.name log.iter obj_str log.error Δt_str data_str
         end
     elseif log.state === CANCEL
         Δt_str = format_time(log.t_last - log.t_init)
