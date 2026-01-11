@@ -39,7 +39,7 @@ function LeftGaugedQP(
     )
     # find the left null spaces for the TNS
     excitation_space = Vect[typeof(sector)](sector => 1)
-    VLs = convert(Vector, map(leftnull, left_gs.AL))
+    VLs = convert(Vector, map(left_null, left_gs.AL))
     Xs = map(enumerate(VLs)) do (loc, vl)
         x = similar(
             vl,
@@ -73,7 +73,7 @@ function RightGaugedQP(
     )
     # find the left null spaces for the TNS
     excitation_space = Vect[typeof(sector)](sector => 1)
-    VRs = convert(Vector, map(rightnull! ∘ _transpose_tail, right_gs.AR))
+    VRs = convert(Vector, map(x -> right_null!(_transpose_tail(x; copy = true)), right_gs.AR))
     Xs = map(enumerate(VRs)) do (i, vr)
         x = similar(
             vr,
@@ -212,6 +212,8 @@ const FiniteQP{S <: FiniteMPS, T1, T2} = QP{S, T1, T2}
 const InfiniteQP{S <: InfiniteMPS, T1, T2} = QP{S, T1, T2}
 const MultilineQP{Q <: QP} = Multiline{Q}
 
+GeometryStyle(::Type{<:QP{S, T1, T2}}) where {S, T1, T2} = GeometryStyle(S)
+
 TensorKit.spacetype(::Union{QP{S}, Type{<:QP{S}}}) where {S} = spacetype(S)
 TensorKit.sectortype(::Union{QP{S}, Type{<:QP{S}}}) where {S} = sectortype(S)
 
@@ -309,7 +311,7 @@ function Base.convert(::Type{<:FiniteMPS}, v::QP{S}) where {S <: FiniteMPS}
     ou = oneunit(utl)
     utsp = ou ⊕ ou
     upper = isometry(storagetype(site_type(v.left_gs)), utsp, ou)
-    lower = leftnull(upper)
+    lower = left_null(upper)
     upper_I = upper * upper'
     lower_I = lower * lower'
     uplow_I = upper * lower'

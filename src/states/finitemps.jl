@@ -211,14 +211,13 @@ function FiniteMPS(As::Vector{<:GenericMPSTensor}; normalize = false, overwrite 
     # vectors anyways, maybe deprecate `overwrite`.
     As = overwrite ? As : copy(As)
     N = length(As)
-    for i in 1:(N - 1)
-        As[i], C = leftorth(As[i]; alg = QRpos())
+    As[1] = MatrixAlgebraKit.copy_input(qr_compact, As[1])
+    local C
+    for i in eachindex(As)
+        As[i], C = qr_compact!(As[i]; positive = true)
         normalize && normalize!(C)
-        As[i + 1] = _transpose_front(C * _transpose_tail(As[i + 1]))
+        i == N || (As[i + 1] = _transpose_front(C * _transpose_tail(As[i + 1])))
     end
-
-    As[end], C = leftorth(As[end]; alg = QRpos())
-    normalize && normalize!(C)
 
     A = eltype(As)
     B = typeof(C)
@@ -311,6 +310,9 @@ Base.copy(ψ::FiniteMPS) = FiniteMPS(copy(ψ.ALs), copy(ψ.ARs), copy(ψ.ACs), c
 function Base.similar(ψ::FiniteMPS{A, B}) where {A, B}
     return FiniteMPS{A, B}(similar(ψ.ALs), similar(ψ.ARs), similar(ψ.ACs), similar(ψ.Cs))
 end
+
+Base.isfinite(::Type{<:FiniteMPS}) = true
+GeometryStyle(::Type{<:FiniteMPS}) = FiniteChainStyle()
 
 Base.eachindex(ψ::FiniteMPS) = eachindex(ψ.AL)
 Base.eachindex(l::IndexStyle, ψ::FiniteMPS) = eachindex(l, ψ.AL)
@@ -440,71 +442,6 @@ Compute the dimension of the maximal virtual space at a given site.
 """
 max_Ds(ψ::FiniteMPS) = dim.(max_virtualspaces(ψ))
 
-function Base.summary(io::IO, ψ::FiniteMPS)
-    return print(io, "$(length(ψ))-site FiniteMPS ($(scalartype(ψ)), $(spacetype(ψ)))")
-end
-function Base.show(io::IO, ::MIME"text/plain", ψ::FiniteMPS)
-    println(io, summary(ψ), ":")
-    context = IOContext(io, :typeinfo => eltype(ψ), :compact => true)
-    return show(context, ψ)
-end
-Base.show(io::IO, ψ::FiniteMPS) = show(convert(IOContext, io), ψ)
-function Base.show(io::IOContext, ψ::FiniteMPS)
-    charset = (; start = "┌", mid = "├", stop = "└", ver = "│", dash = "──")
-    limit = get(io, :limit, false)::Bool
-    half_screen_rows = limit ? div(displaysize(io)[1] - 8, 2) : typemax(Int)
-    if !haskey(io, :compact)
-        io = IOContext(io, :compact => true)
-    end
-
-    L = length(ψ)
-    c = ψ.center
-
-    for site in HalfInt.(reverse((1 / 2):(1 / 2):(L + 1 / 2)))
-        if site < half_screen_rows || site > L - half_screen_rows
-            if site > c # ARs
-                if isinteger(site)
-                    println(
-                        io, Int(site) == L ? charset.start : charset.mid, charset.dash,
-                        " AR[$(Int(site))]: ", ψ.ARs[Int(site)]
-                    )
-                end
-            elseif site == c # AC or C
-                if isinteger(c) # center is an AC
-                    println(
-                        io, if site == L
-                            charset.start
-                        elseif site == 1
-                            charset.stop
-                        else
-                            charset.mid
-                        end, charset.dash, " AC[$(Int(site))]: ", ψ.ACs[Int(site)]
-                    )
-                else # center is a bond-tensor
-                    println(
-                        io, if site == HalfInt(L + 1 / 2)
-                            charset.start
-                        elseif site == HalfInt(1 / 2)
-                            charset.stop
-                        else
-                            charset.ver
-                        end, " C[$(Int(site - 1 / 2))]: ", ψ.Cs[Int(site + 1 / 2)]
-                    )
-                end
-            else
-                if isinteger(site)
-                    println(
-                        io, site == 1 ? charset.stop : charset.mid, charset.dash,
-                        " AL[$(Int(site))]: ", ψ.ALs[Int(site)]
-                    )
-                end
-            end
-        elseif site == half_screen_rows
-            println(io, charset.ver, "⋮")
-        end
-    end
-    return nothing
-end
 
 #===========================================================================================
 Linear Algebra
@@ -533,11 +470,11 @@ function Base.:+(ψ₁::MPS, ψ₂::MPS) where {MPS <: FiniteMPS}
     F₁ = isometry(
         storagetype(ψ), (_lastspace(ψ₁.AL[1]) ⊕ _lastspace(ψ₂.AL[1]))', _lastspace(ψ₁.AL[1])'
     )
-    F₂ = leftnull(F₁)
+    F₂ = left_null(F₁)
     @assert _lastspace(F₂) == _lastspace(ψ₂.AL[1])
 
     AL = ψ₁.AL[1] * F₁' + ψ₂.AL[1] * F₂'
-    ψ.ALs[1], R = leftorth!(AL)
+    ψ.ALs[1], R = left_orth!(AL)
 
     for i in 2:halfN
         AL₁ = _transpose_front(F₁ * _transpose_tail(ψ₁.AL[i]))
@@ -546,11 +483,11 @@ function Base.:+(ψ₁::MPS, ψ₂::MPS) where {MPS <: FiniteMPS}
         F₁ = isometry(
             storagetype(ψ), (_lastspace(AL₁) ⊕ _lastspace(ψ₂.AL[i]))', _lastspace(AL₁)'
         )
-        F₂ = leftnull(F₁)
+        F₂ = left_null(F₁)
         @assert _lastspace(F₂) == _lastspace(ψ₂.AL[i])
 
         AL = _transpose_front(R * _transpose_tail(AL₁ * F₁' + AL₂ * F₂'))
-        ψ.ALs[i], R = leftorth!(AL)
+        ψ.ALs[i], R = left_orth!(AL)
     end
 
     C₁ = F₁ * ψ₁.C[halfN]
@@ -560,11 +497,11 @@ function Base.:+(ψ₁::MPS, ψ₂::MPS) where {MPS <: FiniteMPS}
     F₁ = isometry(
         storagetype(ψ), _firstspace(ψ₁.AR[end]) ⊕ _firstspace(ψ₂.AR[end]), _firstspace(ψ₁.AR[end])
     )
-    F₂ = leftnull(F₁)
+    F₂ = left_null(F₁)
     @assert _lastspace(F₂) == _firstspace(ψ₂.AR[end])'
 
     AR = F₁ * _transpose_tail(ψ₁.AR[end]) + F₂ * _transpose_tail(ψ₂.AR[end])
-    L, AR′ = rightorth!(AR)
+    L, AR′ = right_orth!(AR)
     ψ.ARs[end] = _transpose_front(AR′)
 
     for i in Iterators.reverse((halfN + 1):(length(ψ) - 1))
@@ -574,11 +511,11 @@ function Base.:+(ψ₁::MPS, ψ₂::MPS) where {MPS <: FiniteMPS}
         F₁ = isometry(
             storagetype(ψ), _firstspace(ψ₁.AR[i]) ⊕ _firstspace(AR₂), _firstspace(ψ₁.AR[i])
         )
-        F₂ = leftnull(F₁)
+        F₂ = left_null(F₁)
         @assert _lastspace(F₂) == _firstspace(AR₂)'
 
         AR = _transpose_tail(_transpose_front(F₁ * AR₁ + F₂ * AR₂) * L)
-        L, AR′ = rightorth!(AR)
+        L, AR′ = right_orth!(AR)
         ψ.ARs[i] = _transpose_front(AR′)
     end
 

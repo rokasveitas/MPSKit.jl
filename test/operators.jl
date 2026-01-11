@@ -10,6 +10,8 @@ module TestOperators
     using MPSKit
     using MPSKit: _transpose_front, _transpose_tail, C_hamiltonian, AC_hamiltonian,
         AC2_hamiltonian
+    using MPSKit: GeometryStyle, FiniteChainStyle, InfiniteChainStyle, OperatorStyle, MPOStyle,
+        HamiltonianStyle
     using TensorKit
     using TensorKit: ℙ
     using VectorInterface: One
@@ -31,6 +33,13 @@ module TestOperators
             mpo₁ = FiniteMPO(O₁) # type-unstable for now!
             mpo₂ = FiniteMPO(O₂)
             mpo₃ = FiniteMPO(O₃)
+
+            @test isfinite(mpo₁)
+            @test isfinite(typeof(mpo₁))
+            @test GeometryStyle(typeof(mpo₁)) == FiniteChainStyle()
+            @test GeometryStyle(mpo₁) == FiniteChainStyle()
+            @test OperatorStyle(typeof(mpo₁)) == MPOStyle()
+
 
             @test @constinferred physicalspace(mpo₁) == fill(V, L)
             Vleft = @constinferred left_virtualspace(mpo₁)
@@ -62,6 +71,8 @@ module TestOperators
             mps₁ = FiniteMPS(ψ₁)
             mps₂ = FiniteMPS(ψ₂)
 
+            @test @constinferred GeometryStyle(mps₁, mpo₁, mps₁) == GeometryStyle(mps₁)
+
             @test convert(TensorMap, mpo₁ * mps₁) ≈ O₁ * ψ₁
             @test mpo₁ * ψ₁ ≈ O₁ * ψ₁
             @test convert(TensorMap, mpo₃ * mps₁) ≈ O₃ * ψ₁
@@ -79,6 +90,22 @@ module TestOperators
 
             @test dot(mpomps₁, mpomps₁) ≈ dot(mpo₁, mpo₁)
         end
+    end
+
+    @testset "InfiniteMPO" begin
+        P = ℂ^2
+        T = Float64
+
+        H1 = randn(T, P ← P)
+        H1 += H1'
+        H = InfiniteMPO([H1])
+
+        @test !isfinite(H)
+        @test !isfinite(typeof(H))
+        @test GeometryStyle(typeof(H)) == InfiniteChainStyle()
+        @test GeometryStyle(H) == InfiniteChainStyle()
+        @test OperatorStyle(typeof(H)) == MPOStyle()
+        @test OperatorStyle(H) == MPOStyle()
     end
 
     @testset "MPOHamiltonian constructors" begin
@@ -109,6 +136,14 @@ module TestOperators
         H′ = FiniteMPOHamiltonian(map(Base.Fix1(collect, Any), Ws)) # without type info
         @test H ≈ H′
 
+        @test isfinite(H)
+        @test isfinite(typeof(H))
+        @test GeometryStyle(typeof(H)) == FiniteChainStyle()
+        @test GeometryStyle(H) == FiniteChainStyle()
+        @test OperatorStyle(typeof(H)) == HamiltonianStyle()
+        @test OperatorStyle(H) == HamiltonianStyle()
+        @test OperatorStyle(H, H′) == OperatorStyle(H)
+
         # Infinite
         Ws = [Wmid]
         H = InfiniteMPOHamiltonian(
@@ -119,6 +154,13 @@ module TestOperators
 
         H′ = InfiniteMPOHamiltonian(map(Base.Fix1(collect, Any), Ws)) # without type info
         @test all(parent(H) .≈ parent(H′))
+
+        @test !isfinite(H)
+        @test !isfinite(typeof(H))
+        @test GeometryStyle(typeof(H)) == InfiniteChainStyle()
+        @test GeometryStyle(H) == InfiniteChainStyle()
+        @test OperatorStyle(typeof(H)) == HamiltonianStyle()
+        @test OperatorStyle(H) == HamiltonianStyle()
     end
 
     @testset "Finite MPOHamiltonian" begin
@@ -180,7 +222,7 @@ module TestOperators
                 FiniteMPOHamiltonian(lattice, 3 => O₁)
             @test 0.8 * H1 + 0.2 * H1 ≈ H1 atol = 1.0e-6
             @test convert(TensorMap, H1 + H2) ≈ convert(TensorMap, H1) + convert(TensorMap, H2) atol = 1.0e-6
-            H1_trunc = changebonds(H1, SvdCut(; trscheme = truncdim(0)))
+            H1_trunc = changebonds(H1, SvdCut(; trscheme = truncrank(0)))
             @test H1_trunc ≈ H1
             @test all(left_virtualspace(H1_trunc) .== left_virtualspace(H1))
 
@@ -212,7 +254,7 @@ module TestOperators
                 FiniteMPOHamiltonian(grid, vertical_operators) +
                 FiniteMPOHamiltonian(grid, horizontal_operators) atol = 1.0e-4
 
-            H5 = changebonds(H4 / 3 + 2H4 / 3, SvdCut(; trscheme = truncbelow(1.0e-12)))
+            H5 = changebonds(H4 / 3 + 2H4 / 3, SvdCut(; trscheme = trunctol(; atol = 1.0e-12)))
             psi = FiniteMPS(physicalspace(H5), V ⊕ oneunit(V))
             @test expectation_value(psi, H4) ≈ expectation_value(psi, H5)
         end
@@ -371,6 +413,8 @@ module TestOperators
         ψ = InfiniteMPS([pspace], [ou ⊕ pspace])
 
         W = MPSKit.DenseMPO(make_time_mpo(ham, 1im * 0.5, WII()))
+
+        @test GeometryStyle(ψ, W) == GeometryStyle(ψ)
         @test W * (W * ψ) ≈ (W * W) * ψ atol = 1.0e-2 # TODO: there is a normalization issue here
     end
 

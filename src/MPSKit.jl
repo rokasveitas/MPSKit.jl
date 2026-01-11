@@ -18,6 +18,7 @@ export QP, LeftGaugedQP, RightGaugedQP
 # operators:
 export AbstractMPO
 export MPO, FiniteMPO, InfiniteMPO
+export JordanMPOTensor, JordanMPOTensorMap
 export MPOHamiltonian, FiniteMPOHamiltonian, InfiniteMPOHamiltonian
 export MultilineMPO
 export UntimedOperator, TimedOperator, MultipliedOperator, LazySum
@@ -59,6 +60,8 @@ using Compat: @compat
 # -------
 using TensorKit
 using TensorKit: BraidingTensor
+using MatrixAlgebraKit
+using MatrixAlgebraKit: TruncationStrategy, PolarViaSVD, LAPACK_SVDAlgorithm
 using BlockTensorKit
 using BlockTensorKit: TensorMapSumSpace
 using TensorOperations
@@ -95,6 +98,7 @@ include("utility/logging.jl")
 using .IterativeLoggers
 include("utility/iterativesolvers.jl")
 
+include("utility/styles.jl")
 include("utility/periodicarray.jl")
 include("utility/windowarray.jl")
 include("utility/multiline.jl")
@@ -122,7 +126,6 @@ include("operators/projection.jl")
 include("operators/timedependence.jl")
 include("operators/multipliedoperator.jl")
 include("operators/lazysum.jl")
-include("operators/show.jl")
 
 include("transfermatrix/transfermatrix.jl")
 include("transfermatrix/transfer.jl")
@@ -187,6 +190,8 @@ include("algorithms/approximate/idmrg.jl")
 include("algorithms/ED.jl")
 
 include("algorithms/unionalg.jl")
+
+include("utility/show.jl")
 
 function __init__()
     Defaults.set_scheduler!()

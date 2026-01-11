@@ -30,7 +30,9 @@ links = InterLinks(
     "TensorKit" => "https://quantumkithub.github.io/TensorKit.jl/stable/",
     "TensorOperations" => "https://quantumkithub.github.io/TensorOperations.jl/stable/",
     "KrylovKit" => "https://jutho.github.io/KrylovKit.jl/stable/",
-    "BlockTensorKit" => "https://lkdvos.github.io/BlockTensorKit.jl/dev/"
+    "BlockTensorKit" => "https://lkdvos.github.io/BlockTensorKit.jl/dev/",
+    "MatrixAlgebraKit" => "https://quantumkithub.github.io/MatrixAlgebraKit.jl/stable/",
+    "MPSKitModels" => "https://quantumkithub.github.io/MPSKitModels.jl/dev/"
 )
 
 # include MPSKit in all doctests
