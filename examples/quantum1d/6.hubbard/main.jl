@@ -36,12 +36,16 @@ using Plots
 using Interpolations
 using Optim
 
+#src # for reproducibility:
+#src using Random
+#src Random.seed!(123)
+
 const t = 1.0
 const mu = 0.0
 const U = 3.0
 
 md"""
-For this case, the groundstate energy has an analytic solution, which can be used to benchmark the numerical results.
+For this case, the ground state energy has an analytic solution, which can be used to benchmark the numerical results.
 It follows from Eq. (6.82) in []().
 
 ```math

@@ -15,13 +15,13 @@ To follow the tutorial you need the following packages:
 using MPSKit, MPSKitModels, TensorKit, Plots, Polynomials
 ````
 
-The Heisenberg model is defined by the following hamiltonian:
+The Heisenberg model is defined by the following Hamiltonian:
 
 ```math
 H = -J∑_{⟨i,j⟩} (X_i X_j + Y_i Y_j + Z_i Z_j)
 ```
 
-This hamiltonian has an SU(2) symmetry, which we can enforce by using SU(2)-symmetric tensors:
+This Hamiltonian has an SU(2) symmetry, which we can enforce by using SU(2)-symmetric tensors:
 
 ````julia
 symmetry = SU2Irrep
@@ -36,7 +36,7 @@ J = 1
 ## Finite size extrapolation
 
 We can start the analysis using finite-size methods.
-The groundstate of this model can be approximated using finite MPS through the use of DMRG.
+The ground state of this model can be approximated using finite MPS through the use of DMRG.
 
 The typical way to find excited states is to minimize the energy while adding an error term
 $$λ \left|gs\right> \left< gs\right|$$
@@ -61,7 +61,7 @@ En_2, st_2 = excitations(H, QuasiparticleAnsatz(), ψ, envs; sector = SU2Irrep(2
 ````
 
 ````
-0.7989253589480493
+0.798925358948053
 ````
 
 We can go even further and doublecheck the claim that ``S = 1`` is an edge excitation, by plotting the energy density.
@@ -102,7 +102,7 @@ f = fit(Ls .^ (-2), ΔEs, 1)
 ````
 
 ````
-0.4517340158584577
+0.4517340158584072
 ````
 
 ````julia
@@ -120,7 +120,7 @@ plot!(p_size_extrapolation, x -> f(x); label = "fit")
 A much nicer way of obtaining the Haldane gap is by working directly in the thermodynamic limit.
 As was already hinted at by the edge modes, this model is in a non-trivial SPT phase.
 Thus, care must be taken when selecting the symmetry sectors.
-The groundstate has half-integer edge modes, thus the virtual spaces must also all carry half-integer charges.
+The ground state has half-integer edge modes, thus the virtual spaces must also all carry half-integer charges.
 
 In contrast with the finite size case, we now should specify a momentum label to the excitations.
 This way, it is possible to scan the dispersion relation over the entire momentum space.
@@ -140,23 +140,23 @@ println("minimum @k = $(kspace[idx]):\t ΔE = $(ΔE)")
 ````
 
 ````
+[ Info: Found excitations for momentum = 1.8849555921538759
+[ Info: Found excitations for momentum = 1.6755160819145563
+[ Info: Found excitations for momentum = 2.0943951023931953
+[ Info: Found excitations for momentum = 1.4660765716752369
 [ Info: Found excitations for momentum = 0.0
 [ Info: Found excitations for momentum = 0.20943951023931953
-[ Info: Found excitations for momentum = 0.41887902047863906
-[ Info: Found excitations for momentum = 0.6283185307179586
-[ Info: Found excitations for momentum = 0.8377580409572781
-[ Info: Found excitations for momentum = 1.0471975511965976
 [ Info: Found excitations for momentum = 1.2566370614359172
-[ Info: Found excitations for momentum = 1.4660765716752369
-[ Info: Found excitations for momentum = 1.6755160819145563
-[ Info: Found excitations for momentum = 1.8849555921538759
-[ Info: Found excitations for momentum = 2.0943951023931953
-[ Info: Found excitations for momentum = 2.303834612632515
-[ Info: Found excitations for momentum = 2.5132741228718345
-[ Info: Found excitations for momentum = 2.722713633111154
 [ Info: Found excitations for momentum = 2.9321531433504737
+[ Info: Found excitations for momentum = 0.41887902047863906
+[ Info: Found excitations for momentum = 2.303834612632515
+[ Info: Found excitations for momentum = 0.6283185307179586
+[ Info: Found excitations for momentum = 2.5132741228718345
+[ Info: Found excitations for momentum = 1.0471975511965976
+[ Info: Found excitations for momentum = 2.722713633111154
 [ Info: Found excitations for momentum = 3.141592653589793
-minimum @k = 3.141592653589793:	 ΔE = 0.41047924851920886
+[ Info: Found excitations for momentum = 0.8377580409572781
+minimum @k = 3.141592653589793:	 ΔE = 0.410479248594856
 
 ````
 
