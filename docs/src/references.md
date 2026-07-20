@@ -6,6 +6,12 @@ Below you can find a list of publications that have made use of MPSKit. If you h
 this package and wish to have your publication added to this list, please open a pull
 request or an issue on the [GitHub repository](https://github.com/QuantumKitHub/MPSKit.jl/).
 
+### 2026
+
+```@bibliography
+Pages = []
+veitas2026
+```
 ### 2025
 
 ```@bibliography
